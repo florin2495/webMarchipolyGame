@@ -525,7 +525,8 @@ describe("debts and bankruptcy", () => {
     expect(g.owner[1]).toBe(1);
     expect(g.mortgaged[1]).toBe(true);
     expect(g.cash[0]).toBe(0);
-    expect(g.cash[1]).toBe(1630);
+    // 1630 received, minus the 10% interest on the mortgaged square it inherits (30 -> 3).
+    expect(g.cash[1]).toBe(1630 - Math.ceil(mortgageValue(1) / 10));
     expect(g.turn).toBe(1);
     expect(g.phase).toBe("roll");
     checkInvariants(g);
