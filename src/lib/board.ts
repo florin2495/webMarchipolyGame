@@ -133,7 +133,8 @@ export function mortgageValue(i: number): number {
 
 /** Paying the mortgage back costs its value plus 10%, rounded up. */
 export function unmortgageCost(i: number): number {
-  return Math.ceil(mortgageValue(i) * 1.1);
+  // Integer math: 50 * 1.1 is 55.00000000000001 in floating point, which ceil() would turn into 56.
+  return Math.ceil((mortgageValue(i) * 11) / 10);
 }
 
 // ---------------------------------------------------------------------------
