@@ -102,6 +102,8 @@ export const END_MODES: EndMode[] = ["bankrupt", "time"];
 export interface Settings {
   /** Money every player starts with. */
   startMoney: number;
+  /** Paid by the bank every time a player passes or lands on Start (rooms made before it existed: SALARY). */
+  salary: number;
   /** A property the player declines to buy is auctioned; off = it stays with the bank. */
   auctions: boolean;
   /** Seconds per decision before the game plays it automatically. */
@@ -113,6 +115,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   startMoney: 1500,
+  salary: SALARY,
   auctions: true,
   turnSeconds: 60,
   endMode: "bankrupt",
@@ -121,16 +124,20 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const LIMITS = {
   startMoney: { min: 500, max: 10_000, step: 100 },
+  salary: { min: 0, max: 2000, step: 50 },
   minutes: { min: 30, max: 180, step: 15 },
 } as const;
 export const TURN_OPTIONS = [30, 45, 60, 90, 120];
 
 export function settingsError(s: Settings): string | null {
-  const { startMoney, minutes } = LIMITS;
+  const { startMoney, salary, minutes } = LIMITS;
   const inRange = (v: number, r: { min: number; max: number; step: number }) =>
     Number.isInteger(v) && v >= r.min && v <= r.max && (v - r.min) % r.step === 0;
   if (!inRange(s.startMoney, startMoney)) {
     return `Banii de start trebuie să fie între ${startMoney.min} și ${startMoney.max}, din ${startMoney.step} în ${startMoney.step}.`;
+  }
+  if (!inRange(s.salary, salary)) {
+    return `Salariul trebuie să fie între ${salary.min} și ${salary.max}, din ${salary.step} în ${salary.step}.`;
   }
   if (typeof s.auctions !== "boolean") return "Licitația trebuie să fie pornită sau oprită.";
   if (!TURN_OPTIONS.includes(s.turnSeconds)) return `Timpul pe tură poate fi ${TURN_OPTIONS.join(", ")} de secunde.`;
@@ -619,10 +626,16 @@ function sendToJail(g: GameState, seat: number) {
   log(g, seat, `${g.names[seat]} merge la închisoare.`);
 }
 
+/** The room's salary; games started before the setting existed keep the classic SALARY. */
+export function salaryOf(g: GameView): number {
+  return g.settings.salary ?? SALARY;
+}
+
 function moveTo(g: GameState, seat: number, to: number, random: () => number, opts: LandOpts = {}) {
   if (to <= g.pos[seat]) {
-    pay(g, "bank", seat, SALARY);
-    log(g, seat, `${g.names[seat]} trece pe la Start și încasează ${money(SALARY)}.`);
+    const salary = salaryOf(g);
+    pay(g, "bank", seat, salary);
+    log(g, seat, `${g.names[seat]} trece pe la Start și încasează ${money(salary)}.`);
   }
   g.pos[seat] = to;
   land(g, seat, random, opts);

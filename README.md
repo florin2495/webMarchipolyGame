@@ -15,7 +15,7 @@ Adresă: **https://games.hailatat.icu/marchipoly**
 
 ## Reguli
 
-1. Host-ul creează camera și alege: banii de start (500–10.000, din 100 în 100), licitația (pornită / oprită), timpul pe
+1. Host-ul creează camera și alege: banii de start (500–10.000, din 100 în 100), salariul de la Start (0–2.000, din 50 în 50, implicit 200), licitația (pornită / oprită), timpul pe
    decizie (30 s – 2 min) și finalul (până rămâne unul, sau limită de timp 30–180 min). Le poate schimba în lobby.
 2. Jocul pornește cu 4–6 jucători. Ordinea: host-ul primul, apoi ordinea din lobby (host-ul o poate aranja).
    Cine intră după start e spectator; spectatorii se pot pune la coadă pentru jocul următor.

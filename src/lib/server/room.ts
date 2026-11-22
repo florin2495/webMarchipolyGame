@@ -204,6 +204,7 @@ export function parseSettings(body: Record<string, unknown>, current: Settings =
   if (typeof auctions !== "boolean") fail(400, "Licitația trebuie să fie pornită sau oprită.");
   const s: Settings = {
     startMoney: num(body.startMoney, current.startMoney),
+    salary: num(body.salary, current.salary),
     auctions,
     turnSeconds: num(body.turnSeconds, current.turnSeconds),
     endMode: endMode as EndMode,

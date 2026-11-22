@@ -13,7 +13,7 @@ for (let m = LIMITS.minutes.min; m <= LIMITS.minutes.max; m += LIMITS.minutes.st
 /** One line that sums the rules up (room header, room list). */
 export function settingsSummary(s: Settings): string {
   const end = s.endMode === "time" ? `${minutesLabel(s.minutes)}` : "până la faliment";
-  return `${money(s.startMoney)} la start · ${s.auctions ? "cu licitație" : "fără licitație"} · ${end}`;
+  return `${money(s.startMoney)} la start · salariu ${money(s.salary)} · ${s.auctions ? "cu licitație" : "fără licitație"} · ${end}`;
 }
 
 /**
@@ -42,6 +42,15 @@ export function SettingsForm({
         step={LIMITS.startMoney.step}
         disabled={disabled}
         onValue={(startMoney) => set({ startMoney })}
+      />
+      <NumberField
+        label="Salariul la Start (când treci sau oprești pe Start)"
+        value={value.salary}
+        min={LIMITS.salary.min}
+        max={LIMITS.salary.max}
+        step={LIMITS.salary.step}
+        disabled={disabled}
+        onValue={(salary) => set({ salary })}
       />
       <Toggle
         label="Licitație"

@@ -162,9 +162,9 @@ export interface CardDef {
 
 export const CARDS: Record<Deck, CardDef[]> = {
   noroc: [
-    { text: "Mergi la Start și încasezi 200.", effect: { kind: "goto", to: 0 } },
-    { text: "Ai un drum la Timișoara. Dacă treci pe la Start, încasezi 200.", effect: { kind: "goto", to: 24 } },
-    { text: "Ai o ședință la Pitești. Dacă treci pe la Start, încasezi 200.", effect: { kind: "goto", to: 11 } },
+    { text: "Mergi la Start și încasezi salariul.", effect: { kind: "goto", to: 0 } },
+    { text: "Ai un drum la Timișoara. Dacă treci pe la Start, încasezi salariul.", effect: { kind: "goto", to: 24 } },
+    { text: "Ai o ședință la Pitești. Dacă treci pe la Start, încasezi salariul.", effect: { kind: "goto", to: 11 } },
     { text: "Prinzi trenul: mergi la cea mai apropiată gară. Dacă are proprietar, îi plătești dublul chiriei.", effect: { kind: "nearest", what: "station" } },
     { text: "Ai bilet la primul tren: mergi la cea mai apropiată gară. Dacă are proprietar, îi plătești dublul chiriei.", effect: { kind: "nearest", what: "station" } },
     { text: "Control la contor: mergi la cea mai apropiată uzină. Dacă are proprietar, îi plătești de 10 ori zarurile.", effect: { kind: "nearest", what: "utility" } },
@@ -174,13 +174,13 @@ export const CARDS: Record<Deck, CardDef[]> = {
     { text: "Ai fost prins cu acte false: mergi direct la închisoare, fără să treci pe la Start.", effect: { kind: "jail" } },
     { text: "Renovezi fațadele: plătești 25 pe fiecare casă și 100 pe fiecare hotel.", effect: { kind: "repairs", house: 25, hotel: 100 } },
     { text: "Radarul te-a prins pe DN1: amendă de 15.", effect: { kind: "money", amount: -15 } },
-    { text: "Pleci cu trenul de la Gara de Nord. Dacă treci pe la Start, încasezi 200.", effect: { kind: "goto", to: 5 } },
+    { text: "Pleci cu trenul de la Gara de Nord. Dacă treci pe la Start, încasezi salariul.", effect: { kind: "goto", to: 5 } },
     { text: "Ești invitat la o cină pe Primăverii.", effect: { kind: "goto", to: 39 } },
     { text: "Ai fost ales administratorul blocului: plătești fiecărui jucător 50.", effect: { kind: "each", amount: -50 } },
     { text: "Ți s-a returnat garanția de la chirie: încasezi 150.", effect: { kind: "money", amount: 150 } },
   ],
   destin: [
-    { text: "Mergi la Start și încasezi 200.", effect: { kind: "goto", to: 0 } },
+    { text: "Mergi la Start și încasezi salariul.", effect: { kind: "goto", to: 0 } },
     { text: "Banca a greșit un calcul în favoarea ta: încasezi 200.", effect: { kind: "money", amount: 200 } },
     { text: "Plombă la dentist: plătești 50.", effect: { kind: "money", amount: -50 } },
     { text: "Ai vândut niște acțiuni: încasezi 50.", effect: { kind: "money", amount: 50 } },

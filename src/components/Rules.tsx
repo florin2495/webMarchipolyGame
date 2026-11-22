@@ -9,11 +9,11 @@ export function Rules() {
       <ol className="mt-2 list-decimal space-y-1 pl-5">
         <li>
           Joacă între {MIN_PLAYERS} și {MAX_PLAYERS} prieteni, fiecare pe telefonul lui; până la {MAX_OBSERVERS} spectatori pot privi. Host-ul alege
-          cu câți bani începe fiecare, dacă se face licitație, timpul pe decizie și cum se termină jocul.
+          cu câți bani începe fiecare, salariul de la Start, dacă se face licitație, timpul pe decizie și cum se termină jocul.
         </li>
         <li>
           La rândul tău dai cu două zaruri și muți piesa. Cu o dublă mai dai o dată; a treia dublă la rând te trimite la închisoare. Când treci pe la
-          Start încasezi {SALARY}.
+          Start încasezi salariul ales de host (implicit {SALARY}).
         </li>
         <li>
           Pe un oraș, o gară sau o uzină fără proprietar o poți cumpăra. Dacă nu vrei, se licitează între toți (dacă licitația e pornită) sau

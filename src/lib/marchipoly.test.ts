@@ -16,6 +16,7 @@ import {
   parseAction,
   removeSeat,
   RuleError,
+  salaryOf,
   sellProblem,
   type Settings,
   settingsError,
@@ -771,5 +772,32 @@ describe("playtest round 1 fixes", () => {
     expect(g.mortgaged[3]).toBe(true);
     expect(g.cash[0]).toBe(1500 - 10 - Math.ceil(mortgageValue(3) / 10));
     checkInvariants(g);
+  });
+});
+
+describe("salary setting", () => {
+  it("is validated: 0-2000 in steps of 50", () => {
+    expect(settingsError({ ...DEFAULT_SETTINGS, salary: 0 })).toBeNull();
+    expect(settingsError({ ...DEFAULT_SETTINGS, salary: 2000 })).toBeNull();
+    expect(settingsError({ ...DEFAULT_SETTINGS, salary: 225 })).not.toBeNull();
+    expect(settingsError({ ...DEFAULT_SETTINGS, salary: 2050 })).not.toBeNull();
+    expect(settingsError({ ...DEFAULT_SETTINGS, salary: -50 })).not.toBeNull();
+  });
+
+  it("pays the room's salary when passing Start", () => {
+    const g0 = tweak(game(4, { salary: 500 }), (x) => {
+      x.pos[0] = 38;
+    });
+    const g = act(g0, 0, { kind: "roll" }, T0, dice(1, 2));
+    expect(g.pos[0]).toBe(1);
+    expect(g.cash[0]).toBe(1500 + 500);
+    checkInvariants(g);
+  });
+
+  it("games stored before the setting keep the classic 200", () => {
+    const g = tweak(game(), (x) => {
+      delete (x.settings as Partial<Settings>).salary;
+    });
+    expect(salaryOf(g)).toBe(200);
   });
 });
