@@ -534,6 +534,17 @@ function AuctionPanel({ g, mine, busy, send }: { g: PublicGame; mine: boolean; b
   );
 }
 
+/** Owned squares grouped by color group (stations, utilities: one group each), in board order. */
+function groupOwned(owned: number[]): { key: string; squares: number[] }[] {
+  const groups = new Map<string, number[]>();
+  for (const s of owned) {
+    const sq = BOARD[s];
+    const key = sq.group !== undefined ? `g${sq.group}` : sq.kind;
+    groups.set(key, [...(groups.get(key) ?? []), s]);
+  }
+  return [...groups].map(([key, squares]) => ({ key, squares }));
+}
+
 function MyPanel({
   g,
   seat,
@@ -575,27 +586,34 @@ function MyPanel({
       {owned.length === 0 ? (
         <p className="mt-2 text-sm text-zinc-500">{mine ? "Nu ai încă proprietăți." : "Nicio proprietate."}</p>
       ) : (
-        <ul className="mt-2 flex flex-wrap gap-1.5" data-testid="my-properties">
-          {owned.map((s) => {
-            const sq = BOARD[s];
-            const color = sq.group !== undefined ? GROUPS[sq.group].color : "#52525b";
-            const h = g.houses[s];
-            return (
-              <li key={s}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(s)}
-                  className={`min-h-8 rounded-md border-2 bg-white px-2 text-xs font-semibold dark:bg-zinc-900 ${g.mortgaged[s] ? "border-dashed opacity-60" : ""}`}
-                  style={{ borderColor: color }}
-                >
-                  {sq.kind === "station" ? "🚂 " : sq.kind === "utility" ? "⚡ " : ""}
-                  {sq.name}
-                  {h > 0 && <span className="ml-1">{h === 5 ? "🏨" : `🏠${h}`}</span>}
-                  {g.mortgaged[s] && <span className="ml-1 text-[10px] uppercase">ipotecă</span>}
-                </button>
-              </li>
-            );
-          })}
+        // One column per color group (stations and utilities get one each), its properties one under another.
+        <ul className="mt-2 flex flex-wrap items-start gap-1.5" data-testid="my-properties">
+          {groupOwned(owned).map(({ key, squares }) => (
+            <li key={key}>
+              <ul className="flex flex-col gap-1">
+                {squares.map((s) => {
+                  const sq = BOARD[s];
+                  const color = sq.group !== undefined ? GROUPS[sq.group].color : "#52525b";
+                  const h = g.houses[s];
+                  return (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(s)}
+                        className={`min-h-8 w-full rounded-md border-2 bg-white px-2 text-left text-xs font-semibold dark:bg-zinc-900 ${g.mortgaged[s] ? "border-dashed opacity-60" : ""}`}
+                        style={{ borderColor: color }}
+                      >
+                        {sq.kind === "station" ? "🚂 " : sq.kind === "utility" ? "⚡ " : ""}
+                        {sq.name}
+                        {h > 0 && <span className="ml-1">{h === 5 ? "🏨" : `🏠${h}`}</span>}
+                        {g.mortgaged[s] && <span className="ml-1 text-[10px] uppercase">ipotecă</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
         </ul>
       )}
       {mine && owned.length > 0 && <p className="mt-2 text-[11px] text-zinc-500">Atinge o proprietate ca să construiești, vinzi sau ipotechezi.</p>}
