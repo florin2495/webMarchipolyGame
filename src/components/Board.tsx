@@ -201,6 +201,9 @@ export function Board({
                   : c;
         const vertical = c.side === "bottom" || c.side === "top";
         const fs = fontFor(label, inner.w - 0.8);
+        // Price of a station / utility, or the amount of a tax (red): shown under the label of an icon square.
+        const amount = icon && !corner ? (sq.price ?? sq.tax) : undefined;
+        const mid = inner.y + inner.h / 2;
         return (
           <g
             key={sq.index}
@@ -224,7 +227,7 @@ export function Board({
             {icon && (
               <text
                 x={inner.x + inner.w / 2}
-                y={corner ? c.y + c.h / 2 - 1 : inner.y + inner.h / 2 - (vertical ? 1.6 : 0.4)}
+                y={corner ? c.y + c.h / 2 - 1 : amount !== undefined ? mid - (vertical ? 2.6 : 2.1) : mid - (vertical ? 1.6 : 0.4)}
                 fontSize={corner ? 4.2 : 2.6}
                 textAnchor="middle"
                 dominantBaseline="central"
@@ -235,7 +238,15 @@ export function Board({
             {sq.index === JAIL && <JailCorner />}
             {sq.index !== JAIL && <text
               x={inner.x + inner.w / 2}
-              y={corner ? c.y + c.h - 3 : icon ? inner.y + inner.h / 2 + (vertical ? 1.8 : 2.4) : inner.y + inner.h / 2 - (vertical ? 1.2 : 0.5)}
+              y={
+                corner
+                  ? c.y + c.h - 3
+                  : amount !== undefined
+                    ? mid + (vertical ? 0.9 : 0.5)
+                    : icon
+                      ? mid + (vertical ? 1.8 : 2.4)
+                      : mid - (vertical ? 1.2 : 0.5)
+              }
               fontSize={corner ? 1.9 : fs}
               fontWeight={700}
               textAnchor="middle"
@@ -254,6 +265,19 @@ export function Board({
                 fill="#52525b"
               >
                 {sq.price}
+              </text>
+            )}
+            {amount !== undefined && (
+              <text
+                x={inner.x + inner.w / 2}
+                y={mid + (vertical ? 3.0 : 2.5)}
+                fontSize={sq.kind === "tax" ? 1.75 : 1.45}
+                fontWeight={sq.kind === "tax" ? 800 : 400}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={sq.kind === "tax" ? "#dc2626" : "#52525b"}
+              >
+                {amount}
               </text>
             )}
             {band && h > 0 && h < 5 &&
