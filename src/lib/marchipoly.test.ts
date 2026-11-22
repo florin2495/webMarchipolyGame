@@ -313,6 +313,9 @@ describe("doubles and jail", () => {
     let g = game();
     g = act(g, 0, { kind: "roll" }, T0, dice(2, 2));
     expect(g.pos[0]).toBe(4);
+    // Square 4 is the income tax: choose first, then roll again for the double.
+    expect(g.phase).toBe("tax");
+    g = act(g, 0, { kind: "payTax", choice: "fixed" }, T0);
     expect(g.phase).toBe("roll");
     g = act(g, 0, { kind: "roll" }, T0, dice(3, 3));
     expect(g.pos[0]).toBe(10);
