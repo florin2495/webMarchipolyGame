@@ -162,7 +162,7 @@ export const PLAYER_COLORS = ["#e11d48", "#2563eb", "#16a34a", "#d97706", "#9333
 // ---------------------------------------------------------------------------
 // Game state
 // ---------------------------------------------------------------------------
-export type Phase = "roll" | "buy" | "auction" | "debt" | "done" | "over";
+export type Phase = "roll" | "buy" | "tax" | "auction" | "debt" | "done" | "over";
 /** Who gets a payment: a seat, the Parking pot or the bank. */
 export type Payee = number | "pot" | "bank";
 
@@ -247,6 +247,8 @@ export interface GameState {
   moveNo: number;
   /** Unowned property the current player landed on and may buy. */
   buySquare: number | null;
+  /** Income tax square the current player landed on and must choose how to pay (fixed or percent). Missing in old games. */
+  taxSquare?: number | null;
   auction: Auction | null;
   /** Properties waiting to be auctioned (after a bankruptcy to the bank). */
   auctionQueue: number[];
@@ -281,6 +283,7 @@ export type Action =
   | { kind: "buy" }
   | { kind: "decline" }
   | { kind: "bid"; amount: number }
+  | { kind: "payTax"; choice: "fixed" | "percent" }
   | { kind: "pass" }
   | { kind: "build"; square: number }
   | { kind: "sell"; square: number }
@@ -318,6 +321,10 @@ export function parseAction(body: unknown): Action {
     const square = Number(o.square);
     if (!Number.isInteger(square) || square < 0 || square >= BOARD_SIZE) rule("Proprietate invalidă.");
     return { kind, square } as Action;
+  }
+  if (kind === "payTax") {
+    if (o.choice !== "fixed" && o.choice !== "percent") rule("Alege cum plătești impozitul.");
+    return { kind, choice: o.choice };
   }
   if (kind === "bid") {
     const amount = Number(o.amount);
@@ -543,6 +550,37 @@ export function mortgageInterest(g: GameView, squares: number[]): number {
   return squares.filter((s) => g.mortgaged[s]).reduce((sum, s) => sum + Math.ceil(mortgageValue(s) / 10), 0);
 }
 
+/**
+ * Worth for the classic income tax: cash, the printed price of every property (mortgaged ones too) and the cost of
+ * the buildings. Not the same as netWorth (the time-limit ranking counts mortgaged ones at half).
+ */
+export function taxWorth(g: GameView, seat: number): { cash: number; properties: number; buildings: number; total: number } {
+  let properties = 0;
+  let buildings = 0;
+  for (const s of PROPERTIES) {
+    if (g.owner[s] !== seat) continue;
+    properties += BOARD[s].price ?? 0;
+    buildings += g.houses[s] * houseCost(s);
+  }
+  const cash = g.cash[seat];
+  return { cash, properties, buildings, total: cash + properties + buildings };
+}
+
+/** What the income tax costs `seat` either way (percent rounded down). */
+export function taxOptions(g: GameView, seat: number): { fixed: number; percent: number; rate: number } {
+  const sq = BOARD[g.taxSquare ?? 4];
+  const rate = sq.taxPercent ?? 10;
+  return { fixed: sq.tax ?? 200, percent: Math.floor((taxWorth(g, seat).total * rate) / 100), rate };
+}
+
+function payIncomeTax(g: GameState, seat: number, choice: "fixed" | "percent") {
+  const o = taxOptions(g, seat);
+  const amount = choice === "fixed" ? o.fixed : o.percent;
+  g.taxSquare = null;
+  log(g, seat, `${g.names[seat]} alege impozitul ${choice === "fixed" ? `fix de ${money(o.fixed)}` : `de ${o.rate}% din avere (${money(amount)})`}.`);
+  charge(g, seat, amount, "pot", "impozit pe venit");
+}
+
 /** Smallest bid `seat` may make in the running auction. */
 export function minBid(g: GameView): number {
   const a = g.auction;
@@ -584,6 +622,7 @@ export function newGame(seats: string[], names: string[], settings: Settings, no
     dice: null,
     moveNo: 0,
     buySquare: null,
+    taxSquare: null,
     auction: null,
     auctionQueue: [],
     debts: [],
@@ -664,7 +703,9 @@ function land(g: GameState, seat: number, random: () => number, opts: LandOpts) 
       return;
     }
     case "tax":
-      charge(g, seat, sq.tax!, "pot", sq.name.toLowerCase());
+      // Income tax: the player chooses (payTax) between the fixed sum and a percent of their worth.
+      if (sq.taxPercent) g.taxSquare = i;
+      else charge(g, seat, sq.tax!, "pot", sq.name.toLowerCase());
       return;
     case "noroc":
     case "destin":
@@ -810,6 +851,10 @@ function settle(g: GameState, now: number) {
   if (g.auctionQueue.length > 0) {
     startAuction(g);
     g.phase = "auction";
+    return;
+  }
+  if (g.taxSquare != null && !g.bankrupt[g.turn]) {
+    g.phase = "tax";
     return;
   }
   if (g.buySquare !== null && !g.bankrupt[g.turn]) {
@@ -963,6 +1008,7 @@ function goBankrupt(g: GameState, seat: number, creditor: Payee) {
   if (g.trade && (g.trade.from === seat || g.trade.to === seat)) g.trade = null;
   if (seat === g.turn) {
     g.buySquare = null;
+    g.taxSquare = null;
     g.again = false;
   }
   if (g.auction) {
@@ -1142,6 +1188,12 @@ export function act(src: GameState, seat: number, action: Action, now: number, r
       settle(g, now);
       break;
     }
+    case "payTax": {
+      if (!mine || g.trade || g.phase !== "tax" || g.taxSquare == null) rule("Nu ai impozit de plătit acum.");
+      payIncomeTax(g, seat, action.choice);
+      settle(g, now);
+      break;
+    }
     case "decline": {
       if (!mine || g.trade || g.phase !== "buy" || g.buySquare === null) rule("Nu ai ce refuza acum.");
       const sq = g.buySquare!;
@@ -1239,6 +1291,13 @@ export function forceAction(src: GameState, now: number, random: () => number = 
       case "auction":
         passAuction(g, s);
         break;
+      case "tax": {
+        // Timeout: the cheaper of the two.
+        const choice = taxOptions(g, s).percent < taxOptions(g, s).fixed ? "percent" : "fixed";
+        log(g, s, `⏱ ${g.names[s]} plătește automat impozitul ${choice === "percent" ? "de 10%" : "fix"} (${why}).`);
+        payIncomeTax(g, s, choice);
+        break;
+      }
       case "debt": {
         const d = g.debts[0];
         autoRaise(g, s, d.amount);

@@ -17,6 +17,8 @@ import {
   removeSeat,
   RuleError,
   salaryOf,
+  taxOptions,
+  taxWorth,
   sellProblem,
   type Settings,
   settingsError,
@@ -251,6 +253,7 @@ describe("moving, buying and rent", () => {
 
   it("sends taxes to the Parking pot and pays the pot out", () => {
     let g = act(game(), 0, { kind: "roll" }, T0, dice(1, 3));
+    g = act(g, 0, { kind: "payTax", choice: "fixed" }, T0);
     expect(g.pot).toBe(200);
     expect(g.cash[0]).toBe(1300);
     g = tweak(act(g, 0, { kind: "end" }, T0), (x) => (x.pos[1] = 15));
@@ -669,6 +672,8 @@ function botMove(g: GameState, rnd: () => number): Action {
       return { kind: "roll" };
     case "buy":
       return g.cash[a] >= (BOARD[g.buySquare!].price ?? 0) && rnd() < 0.85 ? { kind: "buy" } : { kind: "decline" };
+    case "tax":
+      return { kind: "payTax", choice: rnd() < 0.5 ? "fixed" : "percent" };
     case "auction": {
       const min = minBid(g);
       if (g.cash[a] >= min && rnd() < 0.45) return { kind: "bid", amount: Math.floor(Math.min(g.cash[a], min + Math.floor(rnd() * 5) * 10) / 10) * 10 };
@@ -799,5 +804,57 @@ describe("salary setting", () => {
       delete (x.settings as Partial<Settings>).salary;
     });
     expect(salaryOf(g)).toBe(200);
+  });
+});
+
+describe("income tax: 200 or 10% of your worth", () => {
+  // Start on square 1, roll 1+2: land on Impozit (square 4).
+  const onTax = (setup: (g: GameState) => void = () => {}) =>
+    act(
+      tweak(game(), (x) => {
+        x.pos[0] = 1;
+        setup(x);
+      }),
+      0,
+      { kind: "roll" },
+      T0,
+      dice(1, 2),
+    );
+
+  it("stops on the choice and pays the fixed 200 into the pot", () => {
+    let g = onTax();
+    expect(g.pos[0]).toBe(4);
+    expect(g.phase).toBe("tax");
+    expect(actorOf(g)).toBe(0);
+    expect(() => act(g, 0, { kind: "end" }, T0)).toThrow(RuleError);
+    g = act(g, 0, { kind: "payTax", choice: "fixed" }, T0);
+    expect(g.cash[0]).toBe(1300);
+    expect(g.pot).toBe(200);
+    expect(g.phase).toBe("done");
+    checkInvariants(g);
+  });
+
+  it("10% counts cash, printed prices (mortgaged too) and buildings at cost, rounded down", () => {
+    let g = onTax((x) => {
+      x.owner[1] = 0;
+      x.owner[3] = 0;
+      x.houses[1] = 2;
+      x.houses[3] = 2;
+      x.housesLeft -= 4;
+      x.owner[39] = 0;
+      x.mortgaged[39] = true;
+    });
+    const w = taxWorth(g, 0);
+    expect(w).toEqual({ cash: 1500, properties: 60 + 60 + 400, buildings: 4 * 50, total: 2220 });
+    expect(taxOptions(g, 0).percent).toBe(222);
+    g = act(g, 0, { kind: "payTax", choice: "percent" }, T0);
+    expect(g.cash[0]).toBe(1500 - 222);
+    expect(g.pot).toBe(222);
+  });
+
+  it("a timeout pays the cheaper option", () => {
+    const g = forceAction(onTax(), T0 + 999_999);
+    expect(g.cash[0]).toBe(1500 - 150);
+    expect(g.phase).toBe("done");
   });
 });

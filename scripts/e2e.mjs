@@ -76,6 +76,7 @@ async function playOne(code, s, byId) {
   else if (g.phase === "roll") body = { kind: "roll" };
   else if (g.phase === "buy") body = g.cash[g.actor] >= priceOf(g.buySquare) ? { kind: "buy" } : { kind: "decline" };
   else if (g.phase === "auction") body = { kind: "pass" };
+  else if (g.phase === "tax") body = { kind: "payTax", choice: "fixed" };
   else if (g.phase === "debt") body = g.cash[g.actor] >= g.debts[0].amount ? { kind: "pay" } : { kind: "bankrupt" };
   else body = { kind: "end" };
   return call(`/api/rooms/${code}/action`, { token: p.token, body });

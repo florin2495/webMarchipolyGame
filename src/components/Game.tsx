@@ -5,7 +5,7 @@ import { api } from "@/lib/client/api";
 import { useNow } from "@/lib/client/clock";
 import { PREF_VIBRATE, useBoolPref } from "@/lib/client/prefs";
 import { BOARD, GROUPS, JAIL_FINE, PROPERTIES } from "@/lib/board";
-import { type Action, canManage, minBid, money, netWorth, PLAYER_COLORS, TIMEOUT_GRACE_MS, tradeText } from "@/lib/marchipoly";
+import { type Action, canManage, minBid, money, netWorth, PLAYER_COLORS, taxOptions, taxWorth, TIMEOUT_GRACE_MS, tradeText } from "@/lib/marchipoly";
 import type { PublicGame, RoomState } from "@/lib/types";
 import { Board } from "./Board";
 import { PropertyDialog } from "./PropertyDialog";
@@ -401,6 +401,8 @@ function ActionArea({
         </div>
       </div>
     );
+  } else if (mine && g.phase === "tax") {
+    body = <TaxChoice g={g} seat={me!} busy={busy} send={send} />;
   } else if (mine && g.phase === "roll") {
     const jailed = g.inJail[me!];
     body = (
@@ -443,7 +445,9 @@ function ActionArea({
     const what =
       g.phase === "buy" && g.buySquare !== null
         ? `se gândește dacă cumpără ${BOARD[g.buySquare].name}`
-        : g.phase === "roll"
+        : g.phase === "tax"
+          ? "alege cum plătește impozitul (200 sau 10% din avere)"
+          : g.phase === "roll"
           ? "dă cu zarul"
           : "își termină tura";
     body = (
@@ -458,6 +462,46 @@ function ActionArea({
       {body}
       {skip}
     </Panel>
+  );
+}
+
+/**
+ * Income tax, classic rule: pay the fixed sum or a percent of your worth. The worth is not shown unless the
+ * player asks to work it out ("Calculează-mi averea"), as at the table where you had to decide before counting.
+ */
+function TaxChoice({ g, seat, busy, send }: { g: PublicGame; seat: number; busy: boolean; send: (a: Action) => Promise<boolean> }) {
+  const [shown, setShown] = useState(false);
+  const o = taxOptions(g, seat);
+  const w = taxWorth(g, seat);
+  return (
+    <div className="flex flex-col gap-2" data-testid="tax-choice">
+      <p className="text-sm">
+        💸 <b>Impozit pe venit.</b> Plătești {money(o.fixed)} sau {o.rate}% din averea ta (bani, proprietăți la preț, inclusiv cele
+        ipotecate, și clădiri la cost).
+      </p>
+      {shown ? (
+        <div className="rounded-lg bg-zinc-100 px-3 py-2 text-xs dark:bg-zinc-900" data-testid="tax-worth">
+          <p>Bani: {money(w.cash)}</p>
+          <p>Proprietăți (la preț): {money(w.properties)}</p>
+          <p>Clădiri (la cost): {money(w.buildings)}</p>
+          <p className="mt-1 font-bold">
+            Avere: {money(w.total)} → {o.rate}% = {money(o.percent)}
+          </p>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setShown(true)} className="self-start text-xs font-semibold text-indigo-600 underline" data-testid="tax-show-worth">
+          Calculează-mi averea
+        </button>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" disabled={busy} onClick={() => void send({ kind: "payTax", choice: "percent" })} data-testid="act-tax-percent">
+          Plătesc {o.rate}%{shown ? ` (${money(o.percent)})` : ""}
+        </Button>
+        <Button disabled={busy} onClick={() => void send({ kind: "payTax", choice: "fixed" })} data-testid="act-tax-fixed">
+          Plătesc {money(o.fixed)}
+        </Button>
+      </div>
+    </div>
   );
 }
 

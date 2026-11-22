@@ -37,6 +37,8 @@ export interface Square {
   rents?: number[];
   /** Tax squares: the amount paid into the Parking pot. */
   tax?: number;
+  /** Income tax: the player may pay this percent of their worth instead of `tax` (classic rule). */
+  taxPercent?: number;
 }
 
 type Def = Omit<Square, "index">;
@@ -54,7 +56,7 @@ const DEFS: Def[] = [
   street("Vaslui", "Vaslui", 0, 60, [2, 10, 30, 90, 160, 250]),
   { kind: "destin", name: "Destin", short: "Destin" },
   street("Bârlad", "Bârlad", 0, 60, [4, 20, 60, 180, 320, 450]),
-  { kind: "tax", name: "Impozit pe venit", short: "Impozit", tax: 200 },
+  { kind: "tax", name: "Impozit pe venit", short: "Impozit", tax: 200, taxPercent: 10 },
   { kind: "station", name: "Gara de Nord", short: "Gara N.", price: 200 },
   street("Tulcea", "Tulcea", 1, 100, [6, 30, 90, 270, 400, 550]),
   { kind: "noroc", name: "Noroc", short: "Noroc" },

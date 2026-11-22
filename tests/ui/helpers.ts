@@ -123,6 +123,7 @@ async function botMove(code: string, bot: Bot, g: GameLite): Promise<void> {
   else if (g.phase === "roll") body = { kind: "roll" };
   else if (g.phase === "buy") body = { kind: "decline" };
   else if (g.phase === "auction") body = { kind: "pass" };
+  else if (g.phase === "tax") body = { kind: "payTax", choice: "fixed" };
   else if (g.phase === "debt") body = g.cash[g.actor!] >= g.debts[0].amount ? { kind: "pay" } : { kind: "bankrupt" };
   await call(`api/rooms/${code}/action`, { token: bot.token, body });
 }
@@ -131,7 +132,7 @@ async function botMove(code: string, bot: Bot, g: GameLite): Promise<void> {
 async function clickMove(p: Player): Promise<void> {
   const page = p.page;
   await expect(page.getByTestId("action-bar")).toBeVisible({ timeout: REALTIME_MS });
-  for (const id of ["act-reject", "act-roll", "act-buy", "act-pass", "act-pay", "act-bankrupt", "act-end"]) {
+  for (const id of ["act-reject", "act-roll", "act-buy", "act-tax-fixed", "act-pass", "act-pay", "act-bankrupt", "act-end"]) {
     const b = page.getByTestId(id);
     if ((await b.isVisible()) && (await b.isEnabled())) {
       const [res] = await Promise.all([

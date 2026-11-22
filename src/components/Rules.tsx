@@ -37,6 +37,8 @@ export function Rules() {
           sau refuză.
         </li>
         <li>
+          Pe <b>Impozit</b> alegi: plătești 200 sau 10% din avere (bani, proprietăți la preț, chiar și ipotecate, și clădiri la cost);
+          dacă vrei, îți poți calcula averea înainte să alegi. Taxa de lux e 100.
           Taxele, amenzile și plățile din cărți se strâng la <b>Parcare</b>. Cine se oprește acolo le ia pe toate.
         </li>
         <li>

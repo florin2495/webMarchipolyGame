@@ -30,7 +30,9 @@ Adresă: **https://games.hailatat.icu/marchipoly**
    ipotecată (prin schimb sau la faliment) plătește imediat băncii 10% dobândă din valoarea ipotecii.
 8. Schimburi: în tura ta (sau când ai o datorie) propui proprietăți fără clădiri în regiune, bani și cărți de ieșire
    din închisoare; celălalt acceptă sau refuză.
-9. Taxele, amenzile și plățile din cărți merg la Parcare; cine se oprește acolo le ia.
+9. Impozitul pe venit: alegi între 200 și 10% din avere (bani + proprietăți la preț, chiar și ipotecate + clădiri la
+   cost, rotunjit în jos); înainte să alegi îți poți calcula averea. Taxa de lux: 100. Taxele, amenzile și plățile din
+   cărți merg la Parcare; cine se oprește acolo le ia.
 10. Închisoare: ieși cu dublă (3 încercări, apoi plătești 50 și muți), plătind 50 sau cu o carte.
 11. Datorii: vinzi, ipotechezi, schimbi; dacă nu ajunge, faliment. Datorai unui jucător: el ia tot. Băncii: proprietățile
     se întorc la bancă (și se licitează, dacă licitația e pornită). Cine pleacă din joc dă faliment.

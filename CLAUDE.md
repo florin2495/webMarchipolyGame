@@ -47,18 +47,23 @@ Same as Poker: `GET /api/rooms` first runs `cleanupAbandonedRooms` (`src/lib/ser
   2 taxes, 3 "Noroc" + 3 "Destin" card squares, 16 cards per deck, money in "lei").
 - Pure rules: `src/lib/marchipoly.ts`, no I/O, shared by server and client (the client uses `buildProblem`,
   `mortgageProblem`, `tradeProblem`... to enable buttons). One state machine:
-  `phase` = `roll` | `buy` | `auction` | `debt` | `done` | `over`, plus a pending `trade` overlay (the target acts).
+  `phase` = `roll` | `buy` | `tax` | `auction` | `debt` | `done` | `over`, plus a pending `trade` overlay (the target acts).
   `actorOf(g)` is who must act now. Every move goes through `act(g, seat, action, now, random)` (clones, never
   mutates) and ends with `settle` (debts first, then auctions and the auction queue, then the purchase, then roll / done)
   and `touch` (a new decision restarts the turn timer, `turnNo` / `turnKey`).
 - Money: every transfer goes through `pay`, which keeps `g.bank` (net money the bank put in). Invariant, unit-tested
   after every simulated move: `sum(cash) + pot = startMoney × players + bank`. Taxes, fines, card payments and
   repairs go to the Parking pot; landing on Parking takes it.
-- Settings (host, lobby and room creation): `startMoney` 500-10000 step 100 (default 1500), `auctions` on/off,
+- Income tax (square 4, `taxPercent`): `phase` `tax`, the player chooses `payTax` fixed (200) or percent (10% of
+  `taxWorth`: cash + printed prices, mortgaged too + buildings at cost, rounded down; the UI shows the worth only on
+  request, "Calculează-mi averea"); a timeout pays the cheaper. Luxury tax stays a fixed 100. Old games without
+  `taxSquare` keep working.
+- Settings (host, lobby and room creation): `startMoney` 500-10000 step 100 (default 1500), `salary` 0-2000 step 50
+  (default 200; old games without it pay 200, `salaryOf`), `auctions` on/off (bids from 1 leu, raises of at least 1),
   `turnSeconds` 30/45/60/90/120, `endMode` `bankrupt` | `time` with `minutes` 30-180 step 15. Time mode: after
   `endsAt`, the game ends when the turn wraps back to the first seat; places by net worth (`netWorth`: cash, price,
   mortgaged at half, buildings at cost).
-- Rules implemented: buy / decline (auction among all solvent players, min 10, +10 steps, or stays at the bank when
+- Rules implemented: buy / decline (auction among all solvent players, from 1 leu, raises of at least 1, or stays at the bank when
   auctions are off), rent (full group doubles base rent, houses, stations 25/50/100/200, utilities 4×/10× dice),
   even building with a 32 house / 12 hotel supply, selling at half (a hotel with fewer than 4 houses in the bank goes
   away entirely), mortgages (half price, +10% to pay back, no rent), trades (properties without buildings in their
@@ -98,7 +103,7 @@ All checks run in GitHub Actions on the free tier (public repo, `ubuntu-latest` 
 - UI tests find elements by `data-testid`: `home-submit`, `join-player`, `join-observer`, `leave`, `room-code`,
   `lobby-players`, `lobby-observers`, `role-toggle`, `start-game`, `turn-label`, `turn-timer`, `player-strip`,
   `player-<seat>`, `board`, `square-<i>`, `pot`, `last-card`, `action-bar` (only on the actor's screen) / `status-bar`,
-  `act-roll`, `act-buy`, `act-decline`, `act-bid`, `act-pass`, `bid-amount`, `act-pay`, `act-bankrupt`, `act-end`,
+  `act-roll`, `act-buy`, `act-decline`, `tax-choice`, `tax-show-worth`, `tax-worth`, `act-tax-fixed`, `act-tax-percent`, `act-bid`, `act-pass`, `bid-amount`, `act-pay`, `act-bankrupt`, `act-end`,
   `act-trade`, `act-accept`, `act-reject`, `act-cancel`, `act-pay-jail`, `act-use-card`, `host-skip`, `auction`,
   `my-panel`, `my-cash`, `my-properties`, `property-dialog`, `prop-build`, `prop-sell`, `prop-mortgage`,
   `prop-unmortgage`, `trade-dialog`, `trade-send`, `observer-panel`, `view-switcher`, `view-all`, `view-seat-<i>`,
