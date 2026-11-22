@@ -1,0 +1,51 @@
+import "server-only";
+import type { GameState } from "@/lib/marchipoly";
+import { isTestRoom, leaderboardEntries } from "@/lib/leaderboard";
+import { db, isMissingTable } from "./db";
+
+const GAME = "marchipoly";
+
+/**
+ * Reports a finished game to the hub's shared leaderboard (hub_leaderboard*, owned by the hub).
+ * Idempotent: the (game, room, round) row in hub_leaderboard_rounds is claimed first, so a game is counted once
+ * however many requests see it end. Best effort - never throws, a failure must not break the game.
+ * Test rooms (`e2e-test-...`, see isTestRoom) are never reported.
+ */
+export async function reportGame(
+  room: { code: string; name: string; round: number },
+  game: GameState,
+): Promise<void> {
+  if (isTestRoom(room.name)) return;
+  try {
+    const claim = await db().from("hub_leaderboard_rounds").insert({ game: GAME, room_code: room.code, round_no: room.round });
+    if (claim.error) {
+      if (claim.error.code !== "23505" && !isMissingTable(claim.error)) console.error("leaderboard claim failed", claim.error);
+      return; // already counted, or the hub migration has not run yet
+    }
+    for (const e of leaderboardEntries(game.names, game.winner)) {
+      const { data, error } = await db()
+        .from("hub_leaderboard")
+        .select("wins, games")
+        .eq("game", GAME)
+        .eq("player_key", e.playerKey)
+        .maybeSingle();
+      if (error) throw error;
+      const { error: upsertError } = await db()
+        .from("hub_leaderboard")
+        .upsert(
+          {
+            game: GAME,
+            player_key: e.playerKey,
+            display_name: e.displayName.slice(0, 40),
+            wins: (data?.wins ?? 0) + (e.win ? 1 : 0),
+            games: (data?.games ?? 0) + 1,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "game,player_key" },
+        );
+      if (upsertError) throw upsertError;
+    }
+  } catch (err) {
+    console.error("leaderboard report failed", err);
+  }
+}
