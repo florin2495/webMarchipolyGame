@@ -277,11 +277,11 @@ describe("declining a purchase", () => {
     g = act(g, 0, { kind: "decline" }, T0);
     expect(g.phase).toBe("auction");
     expect(actorOf(g)).toBe(1);
-    expect(minBid(g)).toBe(10);
-    expect(() => act(g, 1, { kind: "bid", amount: 5 }, T0)).toThrow(RuleError);
+    expect(minBid(g)).toBe(1);
+    expect(() => act(g, 1, { kind: "bid", amount: 0 }, T0)).toThrow(RuleError);
     g = act(g, 1, { kind: "bid", amount: 10 }, T0);
     expect(actorOf(g)).toBe(2);
-    expect(minBid(g)).toBe(20);
+    expect(minBid(g)).toBe(11);
     g = act(g, 2, { kind: "pass" }, T0);
     g = act(g, 3, { kind: "bid", amount: 30 }, T0);
     g = act(g, 0, { kind: "pass" }, T0);
@@ -743,13 +743,15 @@ describe("random full games", () => {
 });
 
 describe("playtest round 1 fixes", () => {
-  it("auction bids go in steps of 10", () => {
+  it("auction bids start at 1 leu and go up by at least 1 leu", () => {
     let g = act(game(), 0, { kind: "roll" }, T0, dice(1, 2));
     expect(g.phase).toBe("buy");
     g = act(g, 0, { kind: "decline" }, T0);
     const bidder = g.auction!.turn;
-    expect(() => act(g, bidder, { kind: "bid", amount: 15 }, T0)).toThrow(RuleError);
-    expect(act(g, bidder, { kind: "bid", amount: 20 }, T0).auction!.high).toBe(20);
+    const after = act(g, bidder, { kind: "bid", amount: 15 }, T0);
+    expect(after.auction!.high).toBe(15);
+    expect(minBid(after)).toBe(16);
+    expect(() => act(after, actorOf(after)!, { kind: "bid", amount: 15 }, T0)).toThrow(RuleError);
   });
 
   it("trading a property you do not own says so", () => {

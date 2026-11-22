@@ -40,8 +40,8 @@ export const PRESENCE_TOUCH_MS = 20_000;
 /** Extra time on top of the turn timer, for network latency, before a turn can be forced. */
 export const TIMEOUT_GRACE_MS = 1_500;
 /** First bid of an auction, and the smallest raise after it. */
-export const MIN_BID = 10;
-export const BID_STEP = 10;
+export const MIN_BID = 1;
+export const BID_STEP = 1;
 const LOG_MAX = 100;
 
 /** "10 minute" / "60 de minute" (Romanian numeral agreement). */
@@ -881,7 +881,6 @@ function afterAuctionMove(g: GameState, from: number) {
 function bid(g: GameState, seat: number, amount: number) {
   const a = g.auction!;
   if (amount < minBid(g)) rule(`Oferta minimă e ${money(minBid(g))}.`);
-  if (amount % BID_STEP !== 0) rule(`Oferta se face din ${BID_STEP} în ${BID_STEP} lei.`);
   if (amount > g.cash[seat]) rule("Nu ai atâția bani.");
   a.high = amount;
   a.bidder = seat;

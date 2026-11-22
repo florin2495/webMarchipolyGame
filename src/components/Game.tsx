@@ -468,7 +468,7 @@ function AuctionPanel({ g, mine, busy, send }: { g: PublicGame; mine: boolean; b
   const [typed, setTyped] = useState<string>("");
   const amount = typed === "" ? min : Number(typed);
   const cash = g.mySeat !== null ? g.cash[g.mySeat] : 0;
-  const ok = Number.isInteger(amount) && amount % 10 === 0 && amount >= min && amount <= cash;
+  const ok = Number.isInteger(amount) && amount >= min && amount <= cash;
   return (
     <div className="flex flex-col gap-2" data-testid="auction">
       <p className="text-sm">
@@ -487,7 +487,7 @@ function AuctionPanel({ g, mine, busy, send }: { g: PublicGame; mine: boolean; b
       {mine && (
         <>
           <div className="flex gap-2">
-            {[min, min + 40, min + 90].map((v) => (
+            {[min, min + 10, min + 50].map((v) => (
               <button
                 key={v}
                 type="button"
@@ -506,7 +506,7 @@ function AuctionPanel({ g, mine, busy, send }: { g: PublicGame; mine: boolean; b
               inputMode="numeric"
               min={min}
               max={cash}
-              step={10}
+              step={1}
               value={typed === "" ? min : typed}
               onChange={(e) => setTyped(e.target.value)}
               className="min-h-10 w-28 rounded-lg border border-zinc-300 bg-white px-2 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
