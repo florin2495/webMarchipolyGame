@@ -71,7 +71,6 @@ function OwnerStrip({ c, color }: { c: Cell; color: string }) {
 
 const ICON: Partial<Record<Square["kind"], string>> = {
   start: "🏁",
-  jail: "🔒",
   parking: "🅿️",
   gotojail: "👮",
   noroc: "🍀",
@@ -87,8 +86,51 @@ function iconOf(sq: Square): string | null {
 
 const fontFor = (label: string, room: number) => Math.min(1.7, room / (label.length * 0.58));
 
-/** Where a seat's token sits inside a square (up to 6 tokens, 3 × 2). */
-export function tokenPoint(i: number, seat: number): { x: number; y: number } {
+// Jail corner (square 10, bottom-left): a smaller cell with bars in its inner corner (towards the middle of the
+// board) holds the players who are in jail; the L-shaped strip along the outer edges is "just visiting".
+const JAIL = 10;
+const CELL = { x: C - 9.4, y: FAR, w: 9.4, h: 9.4 };
+const VISIT_SPOTS: [number, number][] = [
+  [2.4, 88.4],
+  [2.4, 92.2],
+  [2.4, 97.4],
+  [6.3, 97.6],
+  [9.5, 97.6],
+  [12.1, 97.6],
+];
+
+function JailCorner() {
+  const bars = Array.from({ length: 6 }, (_, k) => CELL.x + 1.1 + k * 1.44);
+  return (
+    <g pointerEvents="none">
+      <rect x={CELL.x} y={CELL.y} width={CELL.w} height={CELL.h} fill="#fde68a" stroke="#3f3f46" strokeWidth={0.35} />
+      {bars.map((x) => (
+        <line key={x} x1={x} y1={CELL.y + 3} x2={x} y2={CELL.y + CELL.h - 0.4} stroke="#3f3f46" strokeWidth={0.38} />
+      ))}
+      <line x1={CELL.x + 0.4} y1={CELL.y + 3} x2={CELL.x + CELL.w - 0.4} y2={CELL.y + 3} stroke="#3f3f46" strokeWidth={0.38} />
+      <text
+        x={CELL.x + CELL.w / 2}
+        y={CELL.y + 1.6}
+        fontSize={2.1}
+        fontWeight={900}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="#18181b"
+        letterSpacing={0.25}
+      >
+        JAIL
+      </text>
+    </g>
+  );
+}
+
+/** Where a seat's token sits inside a square (up to 6 tokens, 3 × 2); on the jail corner, inside the cell or visiting. */
+export function tokenPoint(i: number, seat: number, inJail = false): { x: number; y: number } {
+  if (i === JAIL) {
+    if (inJail) return { x: CELL.x + 1.75 + (seat % 3) * 2.95, y: CELL.y + 4.9 + Math.floor(seat / 3) * 2.9 };
+    const [x, y] = VISIT_SPOTS[seat % VISIT_SPOTS.length];
+    return { x, y };
+  }
   const c = cellOf(i);
   const col = seat % 3;
   const row = Math.floor(seat / 3);
@@ -190,7 +232,8 @@ export function Board({
                 {icon}
               </text>
             )}
-            <text
+            {sq.index === JAIL && <JailCorner />}
+            {sq.index !== JAIL && <text
               x={inner.x + inner.w / 2}
               y={corner ? c.y + c.h - 3 : icon ? inner.y + inner.h / 2 + (vertical ? 1.8 : 2.4) : inner.y + inner.h / 2 - (vertical ? 1.2 : 0.5)}
               fontSize={corner ? 1.9 : fs}
@@ -200,7 +243,7 @@ export function Board({
               fill="#18181b"
             >
               {label}
-            </text>
+            </text>}
             {sq.price !== undefined && !icon && (
               <text
                 x={inner.x + inner.w / 2}
@@ -275,7 +318,7 @@ export function Board({
       {/* Tokens */}
       {g.seats.map((_, seat) => {
         if (g.bankrupt[seat]) return null;
-        const p = tokenPoint(g.pos[seat], seat);
+        const p = tokenPoint(g.pos[seat], seat, g.inJail[seat]);
         const active = highlight === seat;
         return (
           <g
