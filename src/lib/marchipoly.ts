@@ -358,8 +358,6 @@ function log(g: GameState, seat: number | null, text: string) {
   if (g.log.length > LOG_MAX) g.log.splice(0, g.log.length - LOG_MAX);
 }
 
-const nameOf = (g: GameView, p: Payee) => (p === "pot" ? "Parcare" : p === "bank" ? "bancă" : g.names[p]);
-
 /** Moves money and keeps the bank balance used by the money-conservation check. */
 function pay(g: GameState, from: number | "bank", to: Payee, amount: number) {
   if (amount <= 0) return;
