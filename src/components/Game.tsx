@@ -468,7 +468,7 @@ function AuctionPanel({ g, mine, busy, send }: { g: PublicGame; mine: boolean; b
   const [typed, setTyped] = useState<string>("");
   const amount = typed === "" ? min : Number(typed);
   const cash = g.mySeat !== null ? g.cash[g.mySeat] : 0;
-  const ok = Number.isInteger(amount) && amount >= min && amount <= cash;
+  const ok = Number.isInteger(amount) && amount % 10 === 0 && amount >= min && amount <= cash;
   return (
     <div className="flex flex-col gap-2" data-testid="auction">
       <p className="text-sm">

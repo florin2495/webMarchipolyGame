@@ -30,7 +30,7 @@ export function Rules() {
         </li>
         <li>
           Ipotecă: iei jumătate din preț, dar nu mai încasezi chirie pe ea până o răscumperi (cu 10% în plus). Poți ipoteca doar dacă regiunea nu
-          are clădiri.
+          are clădiri. Cine primește o proprietate ipotecată (prin schimb sau la faliment) plătește imediat băncii 10% din ipotecă.
         </li>
         <li>
           Schimburi: în tura ta propui unui jucător proprietăți (fără clădiri în regiune), bani sau cărți de ieșire din închisoare; el acceptă

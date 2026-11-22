@@ -20,6 +20,7 @@ import {
   type Settings,
   settingsError,
   tradeable,
+  tradeProblem,
   turnDeadline,
   turnKey,
   unmortgageProblem,
@@ -668,7 +669,7 @@ function botMove(g: GameState, rnd: () => number): Action {
       return g.cash[a] >= (BOARD[g.buySquare!].price ?? 0) && rnd() < 0.85 ? { kind: "buy" } : { kind: "decline" };
     case "auction": {
       const min = minBid(g);
-      if (g.cash[a] >= min && rnd() < 0.45) return { kind: "bid", amount: Math.min(g.cash[a], min + Math.floor(rnd() * 5) * 10) };
+      if (g.cash[a] >= min && rnd() < 0.45) return { kind: "bid", amount: Math.floor(Math.min(g.cash[a], min + Math.floor(rnd() * 5) * 10) / 10) * 10 };
       return { kind: "pass" };
     }
     case "debt": {
@@ -738,4 +739,34 @@ describe("random full games", () => {
       });
     }
   }
+});
+
+describe("playtest round 1 fixes", () => {
+  it("auction bids go in steps of 10", () => {
+    let g = act(game(), 0, { kind: "roll" }, T0, dice(1, 2));
+    expect(g.phase).toBe("buy");
+    g = act(g, 0, { kind: "decline" }, T0);
+    const bidder = g.auction!.turn;
+    expect(() => act(g, bidder, { kind: "bid", amount: 15 }, T0)).toThrow(RuleError);
+    expect(act(g, bidder, { kind: "bid", amount: 20 }, T0).auction!.high).toBe(20);
+  });
+
+  it("trading a property you do not own says so", () => {
+    const g = game();
+    expect(tradeProblem(g, 0, 1, { squares: [1], cash: 0, cards: 0 }, { squares: [], cash: 0, cards: 0 })).toContain("nu e a lui");
+    expect(tradeProblem(g, 0, 1, { squares: [], cash: -5, cards: 0 }, { squares: [], cash: 0, cards: 0 })).toContain("negative");
+  });
+
+  it("receiving a mortgaged property in a trade costs 10% interest", () => {
+    const g0 = tweak(game(), (x) => {
+      x.owner[3] = 1;
+      x.mortgaged[3] = true;
+    });
+    let g = act(g0, 0, { kind: "propose", to: 1, give: { squares: [], cash: 10, cards: 0 }, get: { squares: [3], cash: 0, cards: 0 } }, T0);
+    g = act(g, 1, { kind: "accept" }, T0);
+    expect(g.owner[3]).toBe(0);
+    expect(g.mortgaged[3]).toBe(true);
+    expect(g.cash[0]).toBe(1500 - 10 - Math.ceil(mortgageValue(3) / 10));
+    checkInvariants(g);
+  });
 });

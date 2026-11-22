@@ -26,7 +26,8 @@ Adresă: **https://games.hailatat.icu/marchipoly**
    de 4 ori zarurile, de 10 ori cu amândouă.
 6. Construiești doar cu toată regiunea, fără ipoteci în ea, uniform. Banca are 32 de case și 12 hoteluri. Clădirile se
    vând înapoi la jumătate.
-7. Ipotecă: primești jumătate din preț, nu mai iei chirie pe ea; răscumperi cu 10% în plus.
+7. Ipotecă: primești jumătate din preț, nu mai iei chirie pe ea; răscumperi cu 10% în plus. Cine primește o proprietate
+   ipotecată (prin schimb sau la faliment) plătește imediat băncii 10% dobândă din valoarea ipotecii.
 8. Schimburi: în tura ta (sau când ai o datorie) propui proprietăți fără clădiri în regiune, bani și cărți de ieșire
    din închisoare; celălalt acceptă sau refuză.
 9. Taxele, amenzile și plățile din cărți merg la Parcare; cine se oprește acolo le ia.

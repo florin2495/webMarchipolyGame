@@ -509,16 +509,31 @@ export function tradeProblem(g: GameView, from: number, to: number, give: TradeS
   if (!Number.isInteger(to) || to < 0 || to >= g.seats.length || to === from || g.bankrupt[to]) return "Alege un jucător din joc.";
   const side = (seat: number, s: TradeSide): string | null => {
     if (new Set(s.squares).size !== s.squares.length) return "Ofertă invalidă.";
+    const notOwned = s.squares.find((sq) => !isProperty(sq) || g.owner[sq] !== seat);
+    if (notOwned !== undefined) {
+      return isProperty(notOwned) ? `${BOARD[notOwned].name} nu e a lui ${g.names[seat]}.` : "Ofertă invalidă.";
+    }
     if (!s.squares.every((sq) => tradeable(g, seat, sq))) return "Doar proprietăți fără clădiri în regiune pot fi schimbate.";
-    if (s.cash < 0 || s.cash > g.cash[seat]) return `${g.names[seat]} nu are ${money(s.cash)}.`;
-    if (s.cards < 0 || s.cards > g.jailCards[seat].length) return `${g.names[seat]} nu are atâtea cărți de ieșire din închisoare.`;
+    if (s.cash < 0 || s.cards < 0) return "Sumele din ofertă nu pot fi negative.";
+    if (s.cash > g.cash[seat]) return `${g.names[seat]} nu are ${money(s.cash)}.`;
+    if (s.cards > g.jailCards[seat].length) return `${g.names[seat]} nu are atâtea cărți de ieșire din închisoare.`;
     return null;
   };
   const problem = side(from, give) ?? side(to, get);
   if (problem) return problem;
+  // Whoever receives a mortgaged property pays the bank 10% interest on it at once (official rule).
+  const fromFee = mortgageInterest(g, get.squares);
+  const toFee = mortgageInterest(g, give.squares);
+  if (g.cash[from] - give.cash + get.cash < fromFee) return `${g.names[from]} nu are ${money(fromFee)} pentru dobânda de 10% la ipotecile primite.`;
+  if (g.cash[to] - get.cash + give.cash < toFee) return `${g.names[to]} nu are ${money(toFee)} pentru dobânda de 10% la ipotecile primite.`;
   const empty = (s: TradeSide) => s.squares.length === 0 && s.cash === 0 && s.cards === 0;
   if (empty(give) && empty(get)) return "Oferta e goală.";
   return null;
+}
+
+/** 10% interest (on the mortgage value, rounded up) owed by whoever receives these squares, for the mortgaged ones. */
+export function mortgageInterest(g: GameView, squares: number[]): number {
+  return squares.filter((s) => g.mortgaged[s]).reduce((sum, s) => sum + Math.ceil(mortgageValue(s) / 10), 0);
 }
 
 /** Smallest bid `seat` may make in the running auction. */
@@ -866,6 +881,7 @@ function afterAuctionMove(g: GameState, from: number) {
 function bid(g: GameState, seat: number, amount: number) {
   const a = g.auction!;
   if (amount < minBid(g)) rule(`Oferta minimă e ${money(minBid(g))}.`);
+  if (amount % BID_STEP !== 0) rule(`Oferta se face din ${BID_STEP} în ${BID_STEP} lei.`);
   if (amount > g.cash[seat]) rule("Nu ai atâția bani.");
   a.high = amount;
   a.bidder = seat;
@@ -910,9 +926,12 @@ function goBankrupt(g: GameState, seat: number, creditor: Payee) {
   if (toPlayer) {
     const c = creditor as number;
     pay(g, seat, c, g.cash[seat]);
-    for (const s of PROPERTIES) if (g.owner[s] === seat) g.owner[s] = c;
+    const received = PROPERTIES.filter((s) => g.owner[s] === seat);
+    for (const s of received) g.owner[s] = c;
     g.jailCards[c].push(...g.jailCards[seat]);
     log(g, seat, `${g.names[seat]} a dat faliment. Totul trece la ${g.names[c]}.`);
+    // Mortgages stay; the new owner pays the bank 10% interest on them at once (official rule).
+    charge(g, c, mortgageInterest(g, received), "bank", "dobânda de 10% la ipotecile primite");
   } else {
     pay(g, seat, creditor === "pot" ? "pot" : "bank", g.cash[seat]);
     for (const s of PROPERTIES) {
@@ -1055,6 +1074,8 @@ function acceptTrade(g: GameState) {
   moveCards(g, t.from, t.to, t.give.cards);
   moveCards(g, t.to, t.from, t.get.cards);
   log(g, t.to, `Schimb acceptat: ${tradeText(g, t)}.`);
+  charge(g, t.from, mortgageInterest(g, t.get.squares), "bank", "dobânda de 10% la ipotecile primite");
+  charge(g, t.to, mortgageInterest(g, t.give.squares), "bank", "dobânda de 10% la ipotecile primite");
   g.trade = null;
 }
 
@@ -1072,12 +1093,14 @@ export function act(src: GameState, seat: number, action: Action, now: number, r
 
   switch (action.kind) {
     case "roll":
-      if (!mine || g.trade || g.phase !== "roll") rule("Nu e rândul tău să dai cu zarul.");
+      if (!mine || g.trade) rule("Nu e rândul tău să dai cu zarul.");
+      if (g.phase !== "roll") rule(seat === g.turn && g.rolled ? "Ai dat deja cu zarul în tura asta." : "Nu poți da cu zarul acum.");
       roll(g, seat, random);
       settle(g, now);
       break;
     case "payJail":
-      if (!mine || g.trade || g.phase !== "roll" || !g.inJail[seat]) rule("Nu ești în închisoare.");
+      if (!g.inJail[seat]) rule("Nu ești în închisoare.");
+      if (!mine || g.trade || g.phase !== "roll") rule("Ieși din închisoare doar la începutul turei tale.");
       if (g.cash[seat] < JAIL_FINE) rule("Nu ai destui bani.");
       pay(g, seat, "pot", JAIL_FINE);
       g.inJail[seat] = false;
@@ -1085,7 +1108,8 @@ export function act(src: GameState, seat: number, action: Action, now: number, r
       log(g, seat, `${g.names[seat]} plătește ${money(JAIL_FINE)} și iese din închisoare.`);
       break;
     case "useCard": {
-      if (!mine || g.trade || g.phase !== "roll" || !g.inJail[seat]) rule("Nu ești în închisoare.");
+      if (!g.inJail[seat]) rule("Nu ești în închisoare.");
+      if (!mine || g.trade || g.phase !== "roll") rule("Ieși din închisoare doar la începutul turei tale.");
       const deck = g.jailCards[seat].pop();
       if (!deck) rule("Nu ai o carte de ieșire din închisoare.");
       g.decks[deck!].push(CARDS[deck!].findIndex((c) => c.effect.kind === "jailfree"));
